@@ -1,0 +1,40 @@
+name: Publicar juego web
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: pages
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Preparar Pages
+        uses: actions/configure-pages@v5
+      - name: Descargar la exportacion probada
+        run: |
+          curl --fail --location --retry 3 --output game.zip "https://github.com/hystoria2-bot/historia-espana-pixel-chronicles/releases/download/web-2026-11-03/Historia_de_Espana_WEB_ICONOS_2026-11-02.zip"
+          echo "15be225cdd0d675eca289a6bc79ad096faee043af19402113e57a01cbc00ff32  game.zip" | sha256sum --check
+          mkdir _site
+          unzip -q game.zip -d _site
+          touch _site/.nojekyll
+      - name: Subir sitio verificado
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: _site
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: deployment
+        uses: actions/deploy-pages@v4
